@@ -1,22 +1,23 @@
 import { Module } from '@nestjs/common';
 import { redisStore } from 'cache-manager-redis-store';
-import { CacheModule } from '@nestjs/cache-manager';
+import { CacheModule, CacheStore } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { RedisClientOptions } from 'redis';
 
 @Module({
   imports: [
-    CacheModule.registerAsync({
+    CacheModule.registerAsync<RedisClientOptions>({
       isGlobal: true,
       imports: [ConfigModule],
       inject: [ConfigService],
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore
       useFactory: async (configService: ConfigService) => {
+        const store = await redisStore({
+          url: configService.get('REDIS_URL'),
+          ttl: 60,
+        });
+
         return {
-          isGlobal: true,
-          store: await redisStore({
-            url: configService.get('REDIS_URL'),
-          }),
+          store: store as unknown as CacheStore,
         };
       },
     }),

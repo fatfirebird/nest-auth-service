@@ -1,0 +1,1 @@
+export { RedisCacheTTL } from './decorators';

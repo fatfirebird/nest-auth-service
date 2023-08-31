@@ -1,15 +1,23 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { CACHE_MANAGER, CacheStore } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
-import { Cache } from 'cache-manager';
 
 @Injectable()
 export class AppService {
-  constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private readonly cacheManager: CacheStore,
+  ) {}
 
   async getHello() {
-    this.cacheManager.set('cached_item', { key: 78 }, 10000);
-    const data = await this.cacheManager.get('cached_item');
+    let data = await this.cacheManager.get('fff');
+
     console.log(data);
+    if (!data) {
+      await this.cacheManager.set('fff', { key: Math.random() }, { ttl: 999 });
+      data = await this.cacheManager.get('fff');
+    }
+
+    // await this.cacheManager.reset();
     return data;
+    // return { key: Math.random() };
   }
 }
