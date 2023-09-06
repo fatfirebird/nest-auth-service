@@ -3,19 +3,19 @@ import {
   Get,
   Post,
   Body,
-  Param,
-  HttpStatus,
-  ParseIntPipe,
   ClassSerializerInterceptor,
   UseInterceptors,
-  NotFoundException,
   BadRequestException,
+  UseGuards,
+  Request,
+  NotFoundException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Repository } from 'typeorm';
 import { User } from 'src/infra/database';
 import { InjectRepository } from '@nestjs/typeorm';
+import { AuthGuard } from 'src/core';
 
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller('user')
@@ -42,24 +42,13 @@ export class UserController {
     return await this.userService.create(createUserDto);
   }
 
-  @Get(':id')
-  async findOne(
-    @Param(
-      'id',
-      new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
-    )
-    id: number,
-  ) {
-    const user = await this.userRepository.findOne({
-      where: {
-        id,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} is not found`);
+  @UseGuards(AuthGuard)
+  @Get()
+  async findOne(@Request() req) {
+    if (req?.user) {
+      return req?.user;
     }
 
-    return user;
+    throw new NotFoundException();
   }
 }
