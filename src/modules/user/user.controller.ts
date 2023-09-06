@@ -9,15 +9,27 @@ import {
   UseGuards,
   Request,
   NotFoundException,
+  HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto, CreateUserDtoResponse } from './dto/create-user.dto';
 import { Repository } from 'typeorm';
 import { User } from 'src/infra/database';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AuthGuard } from 'src/core';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiExtraModels,
+  ApiOkResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+  getSchemaPath,
+} from '@nestjs/swagger';
 
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiTags('user')
 @Controller('user')
 export class UserController {
   constructor(
@@ -25,6 +37,17 @@ export class UserController {
     @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
 
+  @ApiExtraModels(CreateUserDtoResponse)
+  @ApiOkResponse({
+    status: 200,
+    schema: {
+      $ref: getSchemaPath(CreateUserDtoResponse),
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'User with same credentials alredy exists',
+  })
+  @HttpCode(HttpStatus.OK)
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
     const sameUser = await this.userRepository
@@ -42,6 +65,16 @@ export class UserController {
     return await this.userService.create(createUserDto);
   }
 
+  @ApiExtraModels(User)
+  @ApiOkResponse({
+    status: 200,
+    schema: {
+      $ref: getSchemaPath(User),
+    },
+  })
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiUnauthorizedResponse()
   @UseGuards(AuthGuard)
   @Get()
   async findOne(@Request() req) {

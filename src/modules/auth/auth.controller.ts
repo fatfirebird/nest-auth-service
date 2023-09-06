@@ -12,15 +12,25 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginUserDto } from './dto/login.dto';
+import { LoginUserDto, LoginUserDtoResponse } from './dto/login.dto';
 import { Repository } from 'typeorm';
 import { User } from 'src/infra/database';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { RefreshDto } from './dto/refresh.dto';
+import { RefreshDto, RefreshDtoResponse } from './dto/refresh.dto';
 import { AuthGuard } from 'src/core';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiExtraModels,
+  ApiOkResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+  getSchemaPath,
+} from '@nestjs/swagger';
 
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -28,6 +38,15 @@ export class AuthController {
     @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
 
+  @ApiExtraModels(LoginUserDtoResponse)
+  @ApiOkResponse({
+    status: 200,
+    schema: {
+      $ref: getSchemaPath(LoginUserDtoResponse),
+    },
+  })
+  @ApiBadRequestResponse()
+  @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() loginUserDto: LoginUserDto) {
     const user = await this.userRepository
@@ -62,21 +81,33 @@ export class AuthController {
     };
   }
 
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse()
   @UseGuards(AuthGuard)
-  @Delete('logout')
   @HttpCode(HttpStatus.CREATED)
+  @Delete('logout')
   async logout(@Request() res) {
     const id = res.user?.id;
 
     await this.authService.deleteTokens(id);
   }
 
+  @ApiExtraModels(RefreshDtoResponse)
+  @ApiBearerAuth()
+  @ApiBadRequestResponse()
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    status: 200,
+    schema: {
+      $ref: getSchemaPath(RefreshDtoResponse),
+    },
+  })
   @Post('refresh')
   async refreshToken(@Body() refreshDto: RefreshDto) {
     const decodedToken = this.authService.decodeToken(refreshDto.refresh);
 
     if (!decodedToken) {
-      return new BadRequestException('Invalid refresh token');
+      throw new BadRequestException('Invalid refresh token');
     }
 
     const isValidRefreshToken = await this.authService.isValidRefreshToken(
@@ -85,7 +116,7 @@ export class AuthController {
     );
 
     if (!isValidRefreshToken) {
-      return new BadRequestException('Invalid refresh token');
+      throw new BadRequestException('Invalid refresh token');
     }
 
     const tokens = await this.authService.createTokens({
@@ -95,7 +126,7 @@ export class AuthController {
     });
 
     if (!tokens) {
-      return new BadRequestException('Invalid refresh token');
+      throw new BadRequestException('Invalid refresh token');
     }
 
     return tokens;
