@@ -22,11 +22,8 @@ import { AuthGuard } from 'src/core';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
-  ApiExtraModels,
-  ApiOkResponse,
   ApiTags,
   ApiUnauthorizedResponse,
-  getSchemaPath,
 } from '@nestjs/swagger';
 
 @UseInterceptors(ClassSerializerInterceptor)
@@ -38,17 +35,12 @@ export class AuthController {
     @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
 
-  @ApiExtraModels(LoginUserDtoResponse)
-  @ApiOkResponse({
-    status: 200,
-    schema: {
-      $ref: getSchemaPath(LoginUserDtoResponse),
-    },
-  })
   @ApiBadRequestResponse()
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(@Body() loginUserDto: LoginUserDto) {
+  async login(
+    @Body() loginUserDto: LoginUserDto,
+  ): Promise<LoginUserDtoResponse> {
     const user = await this.userRepository
       .createQueryBuilder('user')
       .where('user.login = :login', {
@@ -92,18 +84,13 @@ export class AuthController {
     await this.authService.deleteTokens(id);
   }
 
-  @ApiExtraModels(RefreshDtoResponse)
-  @ApiBearerAuth()
   @ApiBadRequestResponse()
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({
-    status: 200,
-    schema: {
-      $ref: getSchemaPath(RefreshDtoResponse),
-    },
-  })
   @Post('refresh')
-  async refreshToken(@Body() refreshDto: RefreshDto) {
+  async refreshToken(
+    @Body() refreshDto: RefreshDto,
+  ): Promise<RefreshDtoResponse> {
     const decodedToken = this.authService.decodeToken(refreshDto.refresh);
 
     if (!decodedToken) {
