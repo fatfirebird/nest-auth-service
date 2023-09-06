@@ -4,7 +4,11 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Delete,
+  HttpCode,
+  HttpStatus,
   Post,
+  Request,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -14,6 +18,7 @@ import { User } from 'src/infra/database';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { RefreshDto } from './dto/refresh.dto';
+import { AuthGuard } from 'src/core';
 
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller('auth')
@@ -57,8 +62,14 @@ export class AuthController {
     };
   }
 
+  @UseGuards(AuthGuard)
   @Delete('logout')
-  async logout() {}
+  @HttpCode(HttpStatus.CREATED)
+  async logout(@Request() res) {
+    const id = res.user?.id;
+
+    await this.authService.deleteTokens(id);
+  }
 
   @Post('refresh')
   async refreshToken(@Body() refreshDto: RefreshDto) {

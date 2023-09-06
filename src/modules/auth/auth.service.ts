@@ -63,4 +63,9 @@ export class AuthService {
 
     return token === storedRefresh;
   }
+
+  async deleteTokens(id: number) {
+    await this.cacheManager.del(`access_${id}`);
+    await this.cacheManager.del(`refresh_${id}`);
+  }
 }
