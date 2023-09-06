@@ -22,7 +22,7 @@ export class User {
   @Column({
     nullable: false,
   })
-  password: string;
+  password?: string;
 }
 
 export default User;

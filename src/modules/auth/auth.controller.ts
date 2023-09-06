@@ -13,6 +13,7 @@ import { Repository } from 'typeorm';
 import { User } from 'src/infra/database';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { RefreshDto } from './dto/refresh.dto';
 
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller('auth')
@@ -60,5 +61,23 @@ export class AuthController {
   async logout() {}
 
   @Post('refresh')
-  async refreshToken() {}
+  async refreshToken(@Body() refreshDto: RefreshDto) {
+    const decodedToken = await this.authService.decodeToken(refreshDto.refresh);
+
+    if (!decodedToken) {
+      return new BadRequestException('Invalid refresh token');
+    }
+
+    const tokens = await this.authService.createTokens({
+      email: decodedToken?.email,
+      id: decodedToken?.id,
+      login: decodedToken?.login,
+    });
+
+    if (!tokens) {
+      return new BadRequestException('Invalid refresh token');
+    }
+
+    return tokens;
+  }
 }

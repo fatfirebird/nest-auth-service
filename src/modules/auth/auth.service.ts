@@ -1,7 +1,7 @@
 import { CACHE_MANAGER, CacheStore } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { sign } from 'jsonwebtoken';
+import { JwtPayload, verify, sign } from 'jsonwebtoken';
 import { User } from 'src/infra/database';
 import ms from 'ms';
 
@@ -44,5 +44,25 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  async decodeToken(token: string): Promise<JwtPayload | null> {
+    const secret = this.configService.getOrThrow<string>('JWT_SECRET');
+
+    const decodedJwt = verify(token, secret, { complete: true });
+
+    if (typeof decodedJwt.payload === 'string' || !decodedJwt.payload?.id) {
+      return null;
+    }
+
+    const storedRefresh = await this.cacheManager.get<string>(
+      `refresh_${decodedJwt.payload?.id}`,
+    );
+
+    if (token !== storedRefresh) {
+      return null;
+    }
+
+    return decodedJwt.payload;
   }
 }
