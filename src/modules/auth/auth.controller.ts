@@ -62,9 +62,18 @@ export class AuthController {
 
   @Post('refresh')
   async refreshToken(@Body() refreshDto: RefreshDto) {
-    const decodedToken = await this.authService.decodeToken(refreshDto.refresh);
+    const decodedToken = this.authService.decodeToken(refreshDto.refresh);
 
     if (!decodedToken) {
+      return new BadRequestException('Invalid refresh token');
+    }
+
+    const isValidRefreshToken = await this.authService.isValidRefreshToken(
+      decodedToken.id,
+      refreshDto.refresh,
+    );
+
+    if (!isValidRefreshToken) {
       return new BadRequestException('Invalid refresh token');
     }
 

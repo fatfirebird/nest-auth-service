@@ -46,7 +46,7 @@ export class AuthService {
     };
   }
 
-  async decodeToken(token: string): Promise<JwtPayload | null> {
+  decodeToken(token: string): JwtPayload | null {
     const secret = this.configService.getOrThrow<string>('JWT_SECRET');
 
     const decodedJwt = verify(token, secret, { complete: true });
@@ -55,14 +55,12 @@ export class AuthService {
       return null;
     }
 
-    const storedRefresh = await this.cacheManager.get<string>(
-      `refresh_${decodedJwt.payload?.id}`,
-    );
-
-    if (token !== storedRefresh) {
-      return null;
-    }
-
     return decodedJwt.payload;
+  }
+
+  async isValidRefreshToken(id: number, token: string) {
+    const storedRefresh = await this.cacheManager.get<string>(`refresh_${id}`);
+
+    return token === storedRefresh;
   }
 }
