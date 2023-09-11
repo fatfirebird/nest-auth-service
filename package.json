@@ -21,6 +21,7 @@
     "typeorm": "typeorm-ts-node-esm"
   },
   "dependencies": {
+    "@nanogiants/nestjs-swagger-api-exception-decorator": "^1.6.10",
     "@nestjs/cache-manager": "^2.1.0",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.0.0",

@@ -11,6 +11,7 @@ import {
   NotFoundException,
   HttpStatus,
   HttpCode,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto, CreateUserDtoResponse } from './dto/create-user.dto';
@@ -18,12 +19,8 @@ import { Repository } from 'typeorm';
 import { User } from 'src/infra/database';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AuthGuard } from 'src/core';
-import {
-  ApiBearerAuth,
-  ApiTags,
-  ApiUnauthorizedResponse,
-  ApiBadRequestResponse,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
 
 @UseInterceptors(ClassSerializerInterceptor)
 @ApiTags('user')
@@ -34,8 +31,10 @@ export class UserController {
     @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
 
-  @ApiBadRequestResponse()
   @HttpCode(HttpStatus.OK)
+  @ApiException(
+    () => new BadRequestException('User with same credentials alredy exists'),
+  )
   @Post()
   async create(
     @Body() createUserDto: CreateUserDto,
@@ -57,7 +56,7 @@ export class UserController {
 
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiUnauthorizedResponse()
+  @ApiException(() => [UnauthorizedException, NotFoundException])
   @UseGuards(AuthGuard)
   @Get()
   async findOne(@Request() req): Promise<User> {

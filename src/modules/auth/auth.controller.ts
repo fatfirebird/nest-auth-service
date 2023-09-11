@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Post,
   Request,
+  UnauthorizedException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -19,12 +20,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { RefreshDto, RefreshDtoResponse } from './dto/refresh.dto';
 import { AuthGuard } from 'src/core';
-import {
-  ApiBadRequestResponse,
-  ApiBearerAuth,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
 
 @UseInterceptors(ClassSerializerInterceptor)
 @ApiTags('auth')
@@ -35,7 +32,7 @@ export class AuthController {
     @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
 
-  @ApiBadRequestResponse()
+  @ApiException(() => new BadRequestException('Invalid credentials'))
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(
@@ -74,8 +71,8 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
-  @ApiUnauthorizedResponse()
   @UseGuards(AuthGuard)
+  @ApiException(() => UnauthorizedException)
   @HttpCode(HttpStatus.CREATED)
   @Delete('logout')
   async logout(@Request() res) {
@@ -84,9 +81,12 @@ export class AuthController {
     await this.authService.deleteTokens(id);
   }
 
-  @ApiBadRequestResponse()
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
+  @ApiException(() => [
+    UnauthorizedException,
+    new BadRequestException('Invalid refresh token'),
+  ])
   @Post('refresh')
   async refreshToken(
     @Body() refreshDto: RefreshDto,
