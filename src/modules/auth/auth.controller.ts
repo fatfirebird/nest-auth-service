@@ -6,22 +6,21 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  Inject,
   Post,
   Request,
   UnauthorizedException,
   UseGuards,
   UseInterceptors,
+  forwardRef,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginUserDto, LoginUserDtoResponse } from './dto/login.dto';
-import { Repository } from 'typeorm';
-import { User } from 'src/infra/database';
-import { InjectRepository } from '@nestjs/typeorm';
-import * as bcrypt from 'bcrypt';
 import { RefreshDto, RefreshDtoResponse } from './dto/refresh.dto';
 import { AuthGuard } from 'src/core';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
+import { UserService } from '../user/user.service';
 
 @UseInterceptors(ClassSerializerInterceptor)
 @ApiTags('auth')
@@ -29,7 +28,8 @@ import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    @InjectRepository(User) private userRepository: Repository<User>,
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService,
   ) {}
 
   @ApiException(() => new BadRequestException('Invalid credentials'))
@@ -38,22 +38,19 @@ export class AuthController {
   async login(
     @Body() loginUserDto: LoginUserDto,
   ): Promise<LoginUserDtoResponse> {
-    const user = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.login = :login', {
-        login: loginUserDto.login,
-      })
-      .orWhere('user.email = :email', { email: loginUserDto.login })
-      .getOne();
+    const user = await this.userService.getUserByLoginOrEmail({
+      email: loginUserDto.email,
+      login: loginUserDto.login,
+    });
 
     if (!user) {
       throw new BadRequestException('Invalid credentials');
     }
 
-    const isValidPassword = await bcrypt.compare(
-      loginUserDto.password,
-      user.password,
-    );
+    const isValidPassword = await this.userService.isValidPassword({
+      passwrod: loginUserDto.password,
+      hashPassword: user.password,
+    });
 
     if (!isValidPassword) {
       throw new BadRequestException('Invalid credentials');

@@ -15,9 +15,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto, CreateUserDtoResponse } from './dto/create-user.dto';
-import { Repository } from 'typeorm';
 import { User } from 'src/infra/database';
-import { InjectRepository } from '@nestjs/typeorm';
 import { AuthGuard } from 'src/core';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
@@ -26,10 +24,7 @@ import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator
 @ApiTags('user')
 @Controller('user')
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-    @InjectRepository(User) private userRepository: Repository<User>,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   @HttpCode(HttpStatus.OK)
   @ApiException(
@@ -39,13 +34,10 @@ export class UserController {
   async create(
     @Body() createUserDto: CreateUserDto,
   ): Promise<CreateUserDtoResponse> {
-    const sameUser = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.login = :login', {
-        login: createUserDto.login,
-      })
-      .orWhere('user.email = :email', { email: createUserDto.email })
-      .getOne();
+    const sameUser = await this.userService.getUserByLoginOrEmail({
+      email: createUserDto.email,
+      login: createUserDto.login,
+    });
 
     if (sameUser) {
       throw new BadRequestException('User with same credentials alredy exists');
