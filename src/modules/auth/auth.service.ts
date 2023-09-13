@@ -2,8 +2,8 @@ import { CACHE_MANAGER, CacheStore } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtPayload, verify, sign } from 'jsonwebtoken';
-import { User } from 'src/infra/database';
 import ms from 'ms';
+import { User } from 'src/infra/database';
 
 @Injectable()
 export class AuthService {

@@ -75,8 +75,8 @@ export class AuthController {
   @ApiException(() => UnauthorizedException)
   @HttpCode(HttpStatus.CREATED)
   @Delete('logout')
-  async logout(@Request() res) {
-    const id = res.user?.id;
+  async logout(@Request() req) {
+    const id = req.user?.id;
 
     await this.authService.deleteTokens(id);
   }
